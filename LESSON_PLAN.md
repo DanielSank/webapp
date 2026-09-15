@@ -230,6 +230,100 @@ like an obvious next step rather than a black box.
 
 ---
 
+## Phase 2.75 — Rebuild a todo row as a native Web Component
+
+Motivated by comparing the browser's own, built-in answer to "GUI toolkit with
+self-contained widget objects" (the model you already know from Qt/PyQt and your
+own `observed` library) against React's top-down "UI = f(state)" model, *before*
+seeing React itself. New sibling directory, e.g. `web-components/` — same
+`todo.ts` state layer can likely be reused as-is; what changes is how the DOM gets
+built and updated.
+
+### Concepts
+
+- **Custom Elements are real classes, and instances are real DOM elements.** You
+  define a class extending `HTMLElement`; `customElements.define("tag-name", Class)`
+  registers it; from then on, `<tag-name>` in HTML (or
+  `document.createElement("tag-name")`) creates an instance of your class. This is
+  the literal browser-native version of "a GUI element is an instance of a class" —
+  no virtual DOM, no framework runtime, no build step required at all.
+- **Tag names must contain a hyphen** (`todo-item`, not `todoitem`) — a deliberate
+  spec requirement so custom tags can never collide with some future native HTML
+  element.
+- **Lifecycle callbacks**, the closest thing to Qt's constructor/`show()`/`close()`:
+  `connectedCallback()` fires when an instance is actually inserted into the
+  document — that's normally where you build the element's initial internal DOM,
+  analogous to a widget's constructor laying out its children.
+- **Properties vs. attributes, again.** You'll expose things like `checked` as a
+  plain JS property with a getter/setter (any value, e.g. a `boolean`) — same
+  attribute-vs-property distinction that bit you with `dataset` (strings only) and
+  `getElementById` (specific element types) earlier. The setter is where "set the
+  data, the widget redraws itself" actually happens: writing to it directly patches
+  whatever part of the element's internal DOM needs to change — no `render()`, no
+  `Proxy`, nothing global involved for this one widget's own display.
+- **`CustomEvent` is the signal/slot, `observed`-callback analogue.** A component
+  tells the outside world about a user action via
+  `this.dispatchEvent(new CustomEvent("todo-delete", { detail: {...}, bubbles: true }))`;
+  outside code listens the normal way
+  (`addEventListener("todo-delete", handler)`). Structurally the same shape as a Qt
+  signal a widget emits and something else connects to — decoupled, and the widget
+  doesn't need to know who's listening.
+
+### Steps
+
+1. Scaffold the new directory the same way as `vanilla/` (plain `tsc` +
+   `python3 -m http.server`, no bundler needed — Custom Elements need zero build
+   tooling to run).
+2. Write a `TodoItemElement` class extending `HTMLElement`. In `connectedCallback`,
+   build its internal structure once (checkbox, text, delete button) the same
+   pieces `render()` used to build per iteration — but now it happens once per
+   element instance, not on every global re-render.
+3. Add `checked` and `text` as real getter/setter properties on the class; each
+   setter updates only the specific internal node that needs to change (e.g. the
+   checkbox's `.checked`) — direct, targeted patching, not a rebuild.
+4. Wire the checkbox's own `change` listener and the delete button's `click`
+   listener *inside the element itself* (this is now natural, not awkward the way
+   it was in `render()` — the element manages its own children for its own
+   lifetime, so there's no "these get destroyed and recreated every pass" tension
+   from the event-delegation discussion). Each dispatches a `CustomEvent`
+   (`todo-toggled`, `todo-delete-requested`) rather than calling app logic directly
+   — the element shouldn't know `todo.ts` exists at all.
+5. `customElements.define("todo-item", TodoItemElement)`.
+6. On the "app" side: build/update a list of `<todo-item>` elements from `todos`,
+   set their `id`/`text`/`checked` properties, and listen for the `CustomEvent`s
+   to call your existing `deleteItem`/`setChecked`/`reorderTodos` from `todo.ts` —
+   the state layer doesn't need to change at all, only what sits between it and
+   the DOM.
+
+### Checkpoints
+
+- Map the pieces explicitly onto what you already know: what in this design plays
+  the role of a Qt widget class? What plays the role of a Qt signal, or a callback
+  registered through your `observed` library?
+- Where did `render()`/the `Proxy` trick's job go — is there still one global
+  "redraw everything" function anywhere, or did that responsibility distribute out
+  into each element's own property setters?
+- Try keeping the same `<todo-item>` DOM nodes across an update (set their
+  properties) versus destroying and recreating them the old way. Does checkbox
+  state survive one approach and not the other? This is the same question as the
+  Phase 1 checkpoint about checkbox state across a `render()` rebuild — see if the
+  answer comes out differently here, and why.
+- Why must the tag name contain a hyphen? What actually breaks if you try to
+  register one without one?
+
+### Stretch (optional)
+
+- Add real encapsulation with Shadow DOM (`this.attachShadow({ mode: "open" })`).
+  Notice what changes — page-level CSS stops leaking in, and DOM queries like
+  `.closest()` behave differently across the shadow boundary (event retargeting) —
+  a real complication worth hitting once.
+- Rebuild the same `<todo-item>` using [Lit](https://lit.dev) (reactive properties
+  + a template, declared instead of hand-written) and compare how much of your
+  property-setter/DOM-patching code disappears versus the plain-Custom-Element
+  version.
+
+---
+
 ## Phase 3 — Rebuild the todo app in a UI framework (React)
 
 ### Concepts
