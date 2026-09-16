@@ -27,7 +27,7 @@ export class TodoListElement extends HTMLElement {
         );
     }
 
-    public setTodos(items: TodoItem[]): void {
+    public render(items: TodoItem[]): void {
         this.replaceChildren();
         for (const item of items) {
             const el = document.createElement("todo-item") as TodoItemElement;

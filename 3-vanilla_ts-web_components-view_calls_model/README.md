@@ -1,18 +1,19 @@
-In this variant, we use web components.
-There's a component representing the todo list, `TodoListElement`, and another component representing a single todo item, `TodoItemElement`.
-There's one instance of `TodoListElement` in the page, and it's fetched in `main.ts` as `todoListElement`.
+In this variant, we use web components, but communication between data and UI goes through callback functions instead of events.
+To run:
+
+```
+$ npm install
+$ npx tsc
+$ python3 -m http.server 8000
+```
 
 Consider what happens if someone clicks the delete button.
 The `TodoItemElement` that owns the button dispatches a custom event `todo-delete-requested`.
-In `main.ts`, we add an event listener that catches that event when the event bubbles up to `listElement` and calls `deleteItem`.
-`deleteItem` mutates `todoList`.
-But `todoList` is a proxy allowing that traps the `set` method, and `main.ts` attaches `listElement.setTodos` as a callback.
+This event bubbles up to the parent UI element, which is a `TodoListElement`.
+Upon receiving the event, the parent element calls its own `deleteItem` method.
+That method is a parameter which is meant to be set by whatever business logic instances the element.
+In other words, when we construct a `TodoListElement`, we're supposed to supply it a function that it can call when the user wants to delete an item.
+That function is meant to be aware of the business logic, i.e. it's the intended entry point for UI to tell the business logic "something needs to be deleted now".
 
-In other words, the flow is:
-1. User action on UI -> UI dispatches event
-1. Parant UI catches event and calls business function.
-1. Business function mutates data.
-1. Data has been instrumented such that upon mutation, it tells the UI to render.
-
-This is kind of insane but it has the benefit that neither the business logic nor the UI knows about the other.
-UI elements just emit events and business logic just gets mutated; `main.ts` sets up all the hooks to turn UI events into business logic actions and to turn business logic changes into UI actions.
+`TodoListElement` also has a public method `render` which is meant to be called by the business logic whenever a render is required.
+`main.ts` attaches this `render` method as a callback whenever the business logic todo list is mutated, i.e. as a trap on `set`.

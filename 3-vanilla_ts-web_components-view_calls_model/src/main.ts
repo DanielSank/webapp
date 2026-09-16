@@ -12,6 +12,6 @@ if (button === null) { throw new Error("no button") };
 button.addEventListener("click", addItem);
 
 window.addEventListener("DOMContentLoaded", (_event) => {
-    addCallbackToTodos(() => todoListElement.setTodos(todoList));
-    todoListElement.setTodos(todoList);
+    addCallbackToTodos(() => todoListElement.render(todoList));
+    todoListElement.render(todoList);
 });
