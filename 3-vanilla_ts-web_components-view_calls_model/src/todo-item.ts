@@ -30,6 +30,7 @@ export class TodoItemElement extends HTMLElement {
     }
 
     connectedCallback(): void {
+        this.draggable = true;
         if (this.hasChildNodes()) return;
         this.appendChild(this.checkbox);
         this.appendChild(this.textbox);

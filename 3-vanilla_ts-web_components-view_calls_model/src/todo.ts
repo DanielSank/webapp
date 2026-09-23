@@ -26,7 +26,7 @@ class IDPool {
 
 }
 
-let ID_POOL = new IDPool();
+const ID_POOL = new IDPool();
 
 export interface TodoItem {
     id: number,
@@ -53,11 +53,12 @@ function moveItem<T>(arr: T[], from: number, to: number): void {
     arr.splice(to, 0, item);
 }
 
-export function reorderTodos(draggedId: number, targetId: number): void {
+function _reorderTodos(draggedId: number, targetId: number): void {
     const fromIndex = todoList.findIndex(t => t.id === draggedId);
     const toIndex = todoList.findIndex(t => t.id === targetId);
     moveItem(todoList, fromIndex, toIndex);
 }
+export const reorderTodos = makeObservable(_reorderTodos);
 
 function _addItem(text: string): TodoItem {
     const item = { id: ID_POOL.get(), text: text, checked: false };
@@ -77,7 +78,7 @@ export const deleteItem = makeObservable(_deleteItem);
 
 export function setChecked(id: number, checked: boolean): void {
     const item = todoList.find(t => t.id === id);
-    if (item === undefined) {throw new Error("bad")}
+    if (item === undefined) {throw new Error(`Could not find todo with index ${id}.`)}
     item.checked = checked;
 }
 
