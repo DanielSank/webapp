@@ -324,7 +324,14 @@ built and updated.
 
 ---
 
-## Phase 3 — Rebuild the todo app in a UI framework (React)
+## Phase 3 — Rebuild the todo app in a UI framework (React) — **skipped**
+
+Kept below for reference, not deleted. After building the `view_calls_model` Web
+Components variant — typed callback properties, `makeObservable`, hand-verified
+focus preservation across surgical DOM updates — the user made an informed call not
+to buy into React's inversion-of-control for this project, having already gotten
+most of what a framework would buy him without it. Phase 4 (Lit) and a planned
+follow-on look (SolidJS) are the actual next steps; see below.
 
 ### Concepts
 
@@ -393,3 +400,92 @@ built and updated.
   build — how much of the bundle is your code versus React itself?
 - Skim the React docs' explanation of the virtual DOM / reconciliation and see how
   close your own mental model (from the Concepts section above) matches theirs.
+
+---
+
+## Phase 4 — Rebuild the todo app in Lit
+
+Unlike React, this one builds *directly* on ground you've already covered twice —
+Lit is a thin layer on top of the same Custom Elements API `TodoItemElement`/
+`TodoListElement` already use, not a new paradigm to learn from scratch.
+
+### Concepts
+
+- **`LitElement` is still just `HTMLElement`.** It's a base class that extends
+  `HTMLElement` — the exact same foundation your own Web Components sit on. Nothing
+  about custom elements, `connectedCallback`, or the constructor restrictions you
+  already hit stops applying; Lit adds reactivity and templating on top, it doesn't
+  replace the platform underneath.
+- **`@property()` is a real, legal decorator use** — worth noticing given the
+  free-function decorator limitation from Phase 2.75/2.75-adjacent work: TS/JS
+  decorators can't wrap a plain function (`observed`'s `@observable_function` has no
+  direct equivalent), but they *can* decorate class members, which is exactly what
+  `@property()` is. Declaring a property this way makes Lit automatically schedule a
+  re-render whenever it's assigned — the same "setter fused with re-render trigger"
+  idea as `useState`, just spelled as a property assignment instead of a hook call.
+- **`render()` + the `html` tagged template — no compiler required.** Components
+  define `render()` returning a template built with the `html` tagged template
+  literal. Unlike JSX, this needs **no build-time transform at all** — tagged
+  template literals are standard JavaScript syntax already; `html` is just an
+  ordinary function receiving the literal's pieces. A bundler can still optimize it,
+  but nothing has to compile your source for a browser to run it as-is.
+- **How Lit updates the DOM without a virtual DOM.** Each `html` template is parsed
+  once, and Lit identifies exactly which parts are dynamic (the `${...}` slots) at
+  that point. On a re-render, there's no diffing two full trees the way React
+  does — Lit directly checks each known dynamic slot against its previous value and
+  patches only the ones that changed. This is architecturally much closer to the
+  surgical, targeted updates you hand-built for add/delete/reorder in
+  `view_calls_model` than to React's general tree-diffing reconciliation.
+- **Shadow DOM by default.** Unlike your own light-DOM `TodoItemElement`, Lit
+  components use Shadow DOM out of the box — the real style/DOM encapsulation
+  flagged as an optional stretch goal back in Phase 2.75 and never actually built.
+
+### Steps
+
+1. Scaffold: `npm create vite@latest` with the `lit-ts` template, or just
+   `npm install lit` into a plain Vite+TS project — Lit doesn't need special
+   scaffolding the way React's JSX pipeline does.
+2. Rebuild `TodoItemElement` as a `LitElement` subclass: `@property()` for `text`
+   and `checked`, a `render()` returning an `html` template for the checkbox, text,
+   and delete button.
+3. Rebuild `TodoListElement` similarly: a property holding the todos array,
+   `render()` mapping over it to produce one `<todo-item>` per entry directly in the
+   template — compare this map-and-return shape to the JSX version from Phase 3 and
+   to your own hand-written `addTodoItem`/loop.
+4. Wire up add/delete/toggle: you can keep the same `CustomEvent`-based
+   communication you already know (Lit doesn't replace this — it's still just
+   Custom Elements underneath), or use Lit's own template event-binding shorthand
+   (`@click=${...}`). Worth trying both and comparing.
+5. Drag-and-drop reorder: the same native HTML5 drag events as every other variant.
+   Nothing about Lit changes this part at all.
+
+### Checkpoints
+
+- Compare a `@property()` declaration against your own hand-written getter/setter
+  pair in `TodoItemElement`. What did Lit save you from writing by hand, and what's
+  actually happening differently underneath versus just "fewer lines"?
+- You now have two different explanations for "how does re-rendering avoid
+  rebuilding everything": React's virtual DOM diff, and Lit's pre-identified dynamic
+  template slots. Given what you know about how each is built, why can Lit skip a
+  full diffing pass that React can't?
+- Since Lit uses Shadow DOM by default, try the same `.closest("todo-item")`-style
+  DOM traversal from `view_calls_model` inside a Lit component. Does it behave the
+  same across the shadow boundary, or differently?
+
+### Stretch (optional)
+
+- Lit supports turning off Shadow DOM for a component — try it for one, and compare
+  styling/encapsulation behavior against your light-DOM `TodoItemElement`.
+- Look at `@state()` versus `@property()` — what's the actual difference, and which
+  would you use for the todos array itself versus something meant to be configured
+  from outside the component?
+
+---
+
+## Phase 5 — SolidJS (planned)
+
+Not yet fleshed out — to be built out with the same structure once Phase 4 is
+underway. Expect the interesting contrast to be fine-grained reactivity with no
+virtual DOM *and* no re-running the whole component function on every update
+(unlike both React and, to a lesser extent, Lit) — closer in spirit to your own
+`Proxy`-based reactivity from Phase 2.5 than either of the other two frameworks.
