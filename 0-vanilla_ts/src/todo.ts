@@ -47,11 +47,15 @@ interface TodoItem {
 
 }
 
-export let todos: TodoItem[] = [
+let todos: TodoItem[] = [
     { id: ID_POOL.get(), text: "foo", checked: false },
     { id: ID_POOL.get(), text: "bar", checked: false },
     { id: ID_POOL.get(), text: "baz", checked: false },
 ];
+
+export function getTodosReadonly(): readonly TodoItem[] {
+    return todos;
+}
 
 function moveItem<T>(arr: T[], from: number, to: number): void {
     const [item] = arr.splice(from, 1);
@@ -67,15 +71,9 @@ export function reorderTodos(draggedId: number, targetId: number): void {
     moveItem(todos, fromIndex, toIndex);
 }
 
-export function addItem() {
-
-    let input = document.getElementById("input") as HTMLInputElement;
-    if (input === null) {
-        throw new Error("Input not found");
-    }
-    todos.push({ id: ID_POOL.get(), text: input.value, checked: false });
+export function addItem(text: string) {
+    todos.push({ id: ID_POOL.get(), text: text, checked: false });
 }
-
 
 export function deleteItem(id: number): void {
     const idx = todos.findIndex(t => t.id === id);
