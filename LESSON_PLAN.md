@@ -478,10 +478,89 @@ Lit is a thin layer on top of the same Custom Elements API `TodoItemElement`/
 
 ---
 
-## Phase 6 — SolidJS (planned)
+## Phase 6 — Rebuild the todo app in SolidJS
 
-Not yet fleshed out — to be built out with the same structure once Phase 4 is
-underway. Expect the interesting contrast to be fine-grained reactivity with no
-virtual DOM *and* no re-running the whole component function on every update
-(unlike both React and, to a lesser extent, Lit) — closer in spirit to your own
-`Proxy`-based reactivity from Phase 2.5 than either of the other two frameworks.
+The odd one out compared to Phases 4 and 5: Solid's JSX *looks* like React's, which
+is exactly what makes the difference underneath worth paying attention to — it's a
+different execution model wearing React's syntax.
+
+### Concepts
+
+- **A Solid component function runs once, not on every update.** This is the single
+  biggest departure from React. In React, your whole component function re-runs on
+  every state change (that's *why* `useState`'s setter has to be the thing that
+  triggers it). In Solid, the component body runs one time to build the DOM and wire
+  up reactivity; after that, updates happen by *directly* patching the specific DOM
+  nodes/attributes that depend on a changed signal — the function itself is never
+  called again. There's no re-render step to reason about at all.
+- **`createSignal` returns a getter *function*, not a value.** `const [count, setCount] = createSignal(0)` —
+  `count` is not the number, it's a function you call (`count()`) to read the current
+  value. This is the mechanism that makes fine-grained tracking possible: calling
+  `count()` inside a piece of JSX registers *that specific spot* as dependent on the
+  signal, so only that DOM location updates when `setCount` runs — compare this to
+  React's `useState`, where reading `count` is just a plain variable and the *whole
+  component* is what's registered for re-execution.
+- **No virtual DOM, and no diffing at all.** Solid's compiler turns your JSX into
+  plain DOM-construction calls (`document.createElement`, `.textContent = ...`, etc.)
+  at build time, with the reactive bindings wired directly to the exact nodes that
+  need them. There's nothing to diff because nothing gets re-described — this is a
+  third distinct answer to the same question Phase 4 and Phase 5 each answered
+  differently (Lit's pre-identified template slots; React's virtual-DOM diff).
+- **`<For each={...}>` instead of `.map()`.** Solid provides a control-flow component
+  for keyed lists, similar in purpose to Lit's `repeat()` directive from Phase 4 —
+  plain `.map()` inside JSX would work but throws away Solid's fine-grained
+  per-item tracking. `<For each={list()}>{(item) => ...}</For>` is the idiomatic
+  shape; compare it directly to `repeat()`'s keying function.
+- **Reactivity composes automatically — no dependency arrays.** `createEffect(() => { ... })`
+  re-runs whenever *any* signal read inside it changes, discovered automatically by
+  which getter functions got called during the last run — no `useEffect`-style
+  dependency array to keep in sync by hand.
+
+### Steps
+
+1. Scaffold: `npm create vite@latest` with the `solid-ts` template (sibling
+   directory, e.g. `6-solidjs/`).
+2. Run it (`npm run dev`) and look at the starter component: find `createSignal`,
+   find where the returned getter is called inside the JSX, and compare directly to
+   the `useState` starter you saw in Phase 5.
+3. **Reuse your existing `todo.ts` and `observable.ts` from Phase 5 as-is** — same
+   ground rule as always, the portable business logic doesn't get rewritten per
+   framework. Copy them in.
+4. **Wire the store to a signal.** You'll want a `createSignal` holding the todo
+   list, updated inside a callback registered via `addObserver` on `addItem`,
+   `deleteItem`, `setChecked`, and `reorderTodos` — structurally the same idea as
+   Phase 5's `subscribe`, but notice as you build it whether Solid's model actually
+   needs the `cachedSnapshot` stability trick you had to build for
+   `useSyncExternalStore`, or whether that whole piece of machinery turns out to be
+   React-specific. Don't assume the answer — build it and see.
+5. **Render the list** with `<For each={todos()}>` instead of `.map()`.
+6. **Add / toggle / delete**: same shape as Phase 5 — call your `todo.ts` functions
+   directly from event handlers (`onClick`, `onChange`).
+7. **Drag-and-drop reorder**: same native HTML5 drag events as every other variant.
+8. **Unsubscribe on cleanup.** Solid has `onCleanup(() => ...)`, the rough analogue
+   of the function `useSyncExternalStore`'s `subscribe` returns — use it to call
+   `removeObserver` with the ids you got back, the same pattern you just built in
+   Phase 5.
+
+### Checkpoints
+
+- You just built an adapter from your own `observable.ts` to a signal in Solid, and
+  you already built one to `useSyncExternalStore` in React. Which one needed less
+  code, and specifically *why* — what requirement did one framework impose that the
+  other didn't?
+- Open the browser devtools, add a `console.log` (or a debugger breakpoint) inside
+  your top-level component function, and trigger `addItem` a few times. Does the log
+  fire again on each update, the way it would in a React component? What does that
+  tell you about where the "re-render" work actually happens in Solid?
+- Compare `<For>` to Lit's `repeat()` and to the `.map()` you wrote in React's JSX.
+  All three exist to solve the same keyed-list problem — what's different about
+  *why* each one exists, given what you now know about each framework's update
+  model?
+
+### Stretch (optional)
+
+- Try swapping `<For>` for a plain `.map()` over `todos()` and see if you can
+  provoke a case where reordering or deleting behaves worse than with `<For>`.
+- Look at what `vite build` produces here versus Phase 5's React bundle — Solid is
+  known for a much smaller runtime; check whether that shows up directly in bundle
+  size for an app this small.
