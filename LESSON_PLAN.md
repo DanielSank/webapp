@@ -324,85 +324,6 @@ built and updated.
 
 ---
 
-## Phase 3 — Rebuild the todo app in a UI framework (React) — **skipped**
-
-Kept below for reference, not deleted. After building the `view_calls_model` Web
-Components variant — typed callback properties, `makeObservable`, hand-verified
-focus preservation across surgical DOM updates — the user made an informed call not
-to buy into React's inversion-of-control for this project, having already gotten
-most of what a framework would buy him without it. Phase 4 (Lit) and a planned
-follow-on look (SolidJS) are the actual next steps; see below.
-
-### Concepts
-
-- **`render()` is a pattern; frameworks industrialize it.** Your Phase 1 `render()` —
-  clear the container, rebuild it from `todos` — already *is* the core idea behind
-  React, Vue, Svelte, and friends: **UI as a function of state.** What you built by
-  hand, a framework gives you two things for free: (1) it calls something like your
-  `render()` **automatically** whenever state changes, instead of you remembering to
-  call it after every mutation; and (2) it doesn't rebuild the whole DOM subtree from
-  scratch each time — it computes what actually changed and patches only that.
-- **Components.** Instead of one big `render()` function, a React app is a tree of
-  small functions ("components"), each returning a description of what it wants
-  on screen, composed like custom HTML tags.
-- **State, and the hook that manages it (`useState`).** `useState` gives you a value
-  and a setter function. Calling the setter is the thing that triggers a re-render —
-  it's the automatic "call `render()` for me" hook you were missing in Phase 1.
-- **JSX.** React components are usually written in a syntax that looks like HTML
-  embedded in TypeScript/JavaScript, compiled (by Vite, using esbuild) into plain
-  function calls. It's a build-time transform, same category of idea as `tsc` erasing
-  types — the browser never sees JSX, only what it compiles down to.
-- **The virtual DOM, briefly.** React keeps a lightweight in-memory description of
-  the UI, compares the new one to the previous one on every state change, and applies
-  only the difference to the real DOM. This is *why* it can afford to let you "just
-  describe the UI" instead of hand-optimizing which nodes to touch, the way you had
-  to think about with `replaceChildren()`.
-
-### Steps
-
-1. Scaffold a fresh React + TypeScript project with Vite: `npm create vite@latest`,
-   choosing the React + TypeScript template. Look through what it generates before
-   changing anything — compare its `package.json` and file layout to what you built
-   by hand in Phases 0–2.
-2. Run it (`npm run dev`) and find the one component it starts you with. Identify:
-   where's the JSX, where's the `useState` call, what does its markup compile to?
-3. **Re-implement your data model** as a `Todo` type/interface (you already have this
-   from Phase 1) and hold the list in `useState` instead of a bare module-level array.
-4. **Rebuild rendering as JSX**: map over your todos array and return an `<li>` per
-   item directly in the component's return value — no `document.createElement`,
-   no manual `appendChild`.
-5. **Add a todo**: an `<input>` whose value is also `useState`-backed, and a button
-   whose `onClick` calls your state setter with the array plus the new item —
-   compare this to your Phase 1 `add()`.
-6. **Toggle / delete**: `onChange`/`onClick` handlers on each rendered item that call
-   the state setter with a new array (not a mutated one — see checkpoints).
-7. **Drag-and-drop reorder**: wire the same native HTML5 drag events from Phase 1
-   (`onDragStart`, `onDragOver`, `onDrop` — React just gives you these as JSX props)
-   to update state the same way.
-
-### Checkpoints
-
-- Find the line in your React version that corresponds to your Phase 1 `render()`
-  call. (Hint: you'll have a hard time finding it, because there isn't one — that's
-  the point. Explain in your own words what replaced it.)
-- React expects you to produce a **new** array/object for state updates rather than
-  mutating the existing one in place (e.g. `setTodos([...todos, newItem])`, not
-  `todos.push(newItem)`). Try mutating in place instead and see what happens (or
-  doesn't happen) on screen. Why do you think React is built to care about this,
-  given how it decides whether to re-render?
-- Line-count or eyeball-compare your Phase 1 `main.ts` against your Phase 3
-  component for the same feature set. Which parts got shorter? Is anything *harder*
-  to see or reason about in the React version than it was in the vanilla one?
-
-### Stretch (optional)
-
-- Look at what `vite build` produces for this project versus your Phase 2 vanilla
-  build — how much of the bundle is your code versus React itself?
-- Skim the React docs' explanation of the virtual DOM / reconciliation and see how
-  close your own mental model (from the Concepts section above) matches theirs.
-
----
-
 ## Phase 4 — Rebuild the todo app in Lit
 
 Unlike React, this one builds *directly* on ground you've already covered twice —
@@ -450,7 +371,7 @@ Lit is a thin layer on top of the same Custom Elements API `TodoItemElement`/
    and delete button.
 3. Rebuild `TodoListElement` similarly: a property holding the todos array,
    `render()` mapping over it to produce one `<todo-item>` per entry directly in the
-   template — compare this map-and-return shape to the JSX version from Phase 3 and
+   template — compare this map-and-return shape to the JSX version from Phase 5 and
    to your own hand-written `addTodoItem`/loop.
 4. Wire up add/delete/toggle: you can keep the same `CustomEvent`-based
    communication you already know (Lit doesn't replace this — it's still just
@@ -482,7 +403,82 @@ Lit is a thin layer on top of the same Custom Elements API `TodoItemElement`/
 
 ---
 
-## Phase 5 — SolidJS (planned)
+## Phase 5 — Rebuild the todo app in a UI framework (React)
+
+### Concepts
+
+- **`render()` is a pattern; frameworks industrialize it.** Your Phase 1 `render()` —
+  clear the container, rebuild it from `todos` — already *is* the core idea behind
+  React, Vue, Svelte, and friends: **UI as a function of state.** What you built by
+  hand, a framework gives you two things for free: (1) it calls something like your
+  `render()` **automatically** whenever state changes, instead of you remembering to
+  call it after every mutation; and (2) it doesn't rebuild the whole DOM subtree from
+  scratch each time — it computes what actually changed and patches only that.
+- **Components.** Instead of one big `render()` function, a React app is a tree of
+  small functions ("components"), each returning a description of what it wants
+  on screen, composed like custom HTML tags.
+- **State, and the hook that manages it (`useState`).** `useState` gives you a value
+  and a setter function. Calling the setter is the thing that triggers a re-render —
+  it's the automatic "call `render()` for me" hook you were missing in Phase 1.
+- **JSX.** React components are usually written in a syntax that looks like HTML
+  embedded in TypeScript/JavaScript, compiled (by Vite, using esbuild) into plain
+  function calls. It's a build-time transform, same category of idea as `tsc` erasing
+  types — the browser never sees JSX, only what it compiles down to.
+- **The virtual DOM, briefly.** React keeps a lightweight in-memory description of
+  the UI, compares the new one to the previous one on every state change, and applies
+  only the difference to the real DOM. This is *why* it can afford to let you "just
+  describe the UI" instead of hand-optimizing which nodes to touch, the way you had
+  to think about with `replaceChildren()`. Worth comparing directly against Phase 4:
+  Lit sidesteps a full diff by pre-identifying each template's dynamic slots; React
+  instead re-describes the whole UI and diffs it against the last description.
+
+### Steps
+
+1. Scaffold a fresh React + TypeScript project with Vite: `npm create vite@latest`,
+   choosing the React + TypeScript template. Look through what it generates before
+   changing anything — compare its `package.json` and file layout to what you built
+   by hand in earlier phases, and to Lit's own scaffold from Phase 4.
+2. Run it (`npm run dev`) and find the one component it starts you with. Identify:
+   where's the JSX, where's the `useState` call, what does its markup compile to?
+3. **Re-implement your data model** as a `Todo` type/interface (you already have this
+   from Phase 1) and hold the list in `useState` instead of a bare module-level array.
+4. **Rebuild rendering as JSX**: map over your todos array and return an `<li>` per
+   item directly in the component's return value — no `document.createElement`,
+   no manual `appendChild`.
+5. **Add a todo**: an `<input>` whose value is also `useState`-backed, and a button
+   whose `onClick` calls your state setter with the array plus the new item —
+   compare this to your Phase 1 `add()`.
+6. **Toggle / delete**: `onChange`/`onClick` handlers on each rendered item that call
+   the state setter with a new array (not a mutated one — see checkpoints).
+7. **Drag-and-drop reorder**: wire the same native HTML5 drag events from Phase 1
+   (`onDragStart`, `onDragOver`, `onDrop` — React just gives you these as JSX props)
+   to update state the same way.
+
+### Checkpoints
+
+- Find the line in your React version that corresponds to your Phase 1 `render()`
+  call. (Hint: you'll have a hard time finding it, because there isn't one — that's
+  the point. Explain in your own words what replaced it.)
+- React expects you to produce a **new** array/object for state updates rather than
+  mutating the existing one in place (e.g. `setTodos([...todos, newItem])`, not
+  `todos.push(newItem)`). Try mutating in place instead and see what happens (or
+  doesn't happen) on screen. Why do you think React is built to care about this,
+  given how it decides whether to re-render?
+- Line-count or eyeball-compare your Phase 1 `main.ts` against your Phase 5
+  component for the same feature set, and against Phase 4's Lit version too. Which
+  parts got shorter in each? Is anything *harder* to see or reason about in React
+  than in either of the other two?
+
+### Stretch (optional)
+
+- Look at what `vite build` produces for this project versus your Phase 2 vanilla
+  build — how much of the bundle is your code versus React itself?
+- Skim the React docs' explanation of the virtual DOM / reconciliation and see how
+  close your own mental model (from the Concepts section above) matches theirs.
+
+---
+
+## Phase 6 — SolidJS (planned)
 
 Not yet fleshed out — to be built out with the same structure once Phase 4 is
 underway. Expect the interesting contrast to be fine-grained reactivity with no
