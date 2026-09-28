@@ -4,9 +4,13 @@ import { render } from "./render.js"
 addCallbackToTodos(render);
 
 const button = document.getElementById("myButton");
-if (button) {
-    button.addEventListener("click", addItem);
-}
+if (button === null) { throw new Error("Button not found"); }
+let input = document.getElementById("input") as HTMLInputElement;
+if (input === null) { throw new Error("Input not found"); }
+button.addEventListener("click", () => {
+    addItem(input.value);
+    input.value = "";
+});
 
 function getRowId(target: EventTarget | null): number {
     if (!(target instanceof Element)) { throw new Error("Target isn't an element") }
@@ -23,7 +27,6 @@ if (list === null) {
 }
 
 list.addEventListener("dragstart", (event: DragEvent) => {
-    console.log(event.target, event.target?.constructor.name);
     const rowId = getRowId(event.target);
     if (event.dataTransfer === null) {throw new Error("dataTransfer not available");}
     event.dataTransfer.setData("text/plain", `${rowId}`);
@@ -33,7 +36,7 @@ list.addEventListener("drop", (event: DragEvent) => {
     if (event.dataTransfer === null) {throw new Error("dataTransfer not available");}
     const draggedId = Number(event.dataTransfer.getData("text/plain"));
     const droppedId = getRowId(event.target);
-    reorderTodos(draggedId, Number(droppedId));
+    reorderTodos(draggedId, droppedId);
 });
 
 list.addEventListener("dragover", (event: DragEvent) => {event.preventDefault();});

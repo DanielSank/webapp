@@ -1,4 +1,4 @@
-import { todos } from "./todo.js"
+import { getTodosReadonly} from "./todo.js"
 
 export function render() {
     console.log("rendering");
@@ -8,15 +8,14 @@ export function render() {
     }
     list.replaceChildren();
 
-    for (const item of todos) {
+    for (const item of getTodosReadonly()) {
 
         let checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.checked = item.checked;
-        // Render a checkbox and hook it up to the data
 
         let deleteButton = document.createElement("button");
-        deleteButton.textContent = "Done";
+        deleteButton.textContent = "Delete";
 
         let itemHTML = document.createElement("li");
         itemHTML.dataset.id = String(item.id);
