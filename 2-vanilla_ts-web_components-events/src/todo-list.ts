@@ -7,7 +7,9 @@ export class TodoListElement extends HTMLElement {
         super();
     }
 
-    public setTodos(items: TodoItem[]): void {
+    connectedCallback() { }
+
+    public setTodos(items: readonly TodoItem[]): void {
         this.replaceChildren();
         for (const item of items) {
             const el = document.createElement("todo-item") as TodoItemElement;

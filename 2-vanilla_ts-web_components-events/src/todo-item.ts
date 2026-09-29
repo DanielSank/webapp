@@ -10,6 +10,7 @@ export class TodoItemElement extends HTMLElement {
     }
 
     connectedCallback(): void {
+        this.draggable = true;
         this.checkbox = document.createElement("input");
         this.checkbox.type = "checkbox";
         this.checkbox.addEventListener("change", () => {
@@ -32,6 +33,12 @@ export class TodoItemElement extends HTMLElement {
             }));
         });
         this.appendChild(this.deleteButton);
+
+        this.addEventListener("dragstart", (event: DragEvent) => {
+            if (event.dataTransfer === null) { throw new Error("dataTransfer not available"); }
+            event.dataTransfer.setData("text/plain", `${this.todoId}`);
+        });
+        this.addEventListener("dragover", (event: DragEvent) => {event.preventDefault();});
         }
 
     get checked(): boolean { return this.checkbox.checked; }
