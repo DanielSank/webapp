@@ -1,15 +1,30 @@
-export type ObservableFunction<Args extends any[], R> = ((...args: Args) => R) & {
-    addObserver: (obs: (result: R, ...args: Args) => void) => void;
+import { IDPool } from './id-pool.ts'
+
+const ID_POOL = new IDPool();
+
+export type ObservableFunction<Args extends unknown[], R> = ((...args: Args) => R) & {
+    addObserver: (obs: (result: R, ...args: Args) => void) => number;
+    removeObserver: (id: number) => boolean;
 };
 
-
-export function makeObservable<Args extends any[], R>(
+export function makeObservable<Args extends unknown[], R>(
         fn: (...args: Args) => R
 ): ObservableFunction<Args, R> {
-    const observers: Array<(result: R, ...args: Args) => void> = [];
+    const observers = new Map<number, (result: R, ...args: Args) => void>();
 
-    function addObserver(obs: (result: R, ...args: Args) => void): void {
-        observers.push(obs);
+    function addObserver(obs: (result: R, ...args: Args) => void): number {
+        const id = ID_POOL.get();
+        observers.set(id, obs);
+        return id;
+    }
+
+    function removeObserver(id: number): boolean {
+        if (observers.has(id)) {
+            observers.delete(id);
+            ID_POOL.return(id);
+            return true;
+        }
+        return false;
     }
 
     function wrapped(...args: Args): R {
@@ -19,5 +34,6 @@ export function makeObservable<Args extends any[], R>(
     }
 
     wrapped.addObserver = addObserver;
+    wrapped.removeObserver = removeObserver;
     return wrapped;
 }

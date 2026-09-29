@@ -1,8 +1,7 @@
 import { LitElement, html } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { customElement, property, state } from 'lit/decorators.js'
 import { repeat } from 'lit/directives/repeat.js'
 import { getTodoListReadonly, addItem, deleteItem, setChecked, reorderTodos } from './todo.ts'
-
 
 function getRowId(path: EventTarget[]): number {
     const row = path.find((node): node is TodoItemElement => node instanceof TodoItemElement);
@@ -10,8 +9,37 @@ function getRowId(path: EventTarget[]): number {
     return row.todoId;
 }
 
+@customElement('todo-input')
+export class TodoInputElement extends LitElement {
+    @state()
+    private text = "";
+
+    private onClick() {
+        addItem(this.text);
+        this.text = "";
+    }
+
+    private handleInput(event: Event) {
+        this.text = (event.target as HTMLInputElement).value;
+    }
+
+    render() {
+        return html`
+        <button @click=${this.onClick}>Add</button>
+        <input
+            type="text"
+            @input=${this.handleInput}
+            .value=${this.text}
+        >
+        </input>
+        `
+    }
+}
+
 @customElement('todo-list')
 export class TodoListElement extends LitElement {
+
+    private disconnectors: (() => void)[] = [];
 
     constructor() {
         super();
@@ -34,13 +62,25 @@ export class TodoListElement extends LitElement {
             if (event.dataTransfer === null) {throw new Error("dataTransfer not available");}
             const draggedId = Number(event.dataTransfer.getData("text/plain"));
             const droppedId = getRowId(event.composedPath());
-            reorderTodos(draggedId, Number(droppedId));
+            reorderTodos(draggedId, droppedId);
         });
+
         // React to business logic functions
-        addItem.addObserver(() => this.requestUpdate());
-        deleteItem.addObserver(() => this.requestUpdate());
-        setChecked.addObserver(() => this.requestUpdate());
-        reorderTodos.addObserver(() => this.requestUpdate());
+        const addItemId = addItem.addObserver(() => this.requestUpdate());
+        const deleteItemId = deleteItem.addObserver(() => this.requestUpdate());
+        const setCheckedId = setChecked.addObserver(() => this.requestUpdate());
+        const reorderTodosId = reorderTodos.addObserver(() => this.requestUpdate());
+
+        // Set up unsubscribe
+        this.disconnectors.push(() => { addItem.removeObserver(addItemId) });
+        this.disconnectors.push(() => { deleteItem.removeObserver(deleteItemId) });
+        this.disconnectors.push(() => { setChecked.removeObserver(setCheckedId) });
+        this.disconnectors.push(() => { reorderTodos.removeObserver(reorderTodosId) });
+    }
+
+    disconnectedCallback(): void {
+        super.disconnectedCallback();
+        for (const disconnect of this.disconnectors) { disconnect(); }
     }
 
     render() {
