@@ -43,7 +43,7 @@ export class TodoListElement extends HTMLElement {
             if (event.dataTransfer === null) {throw new Error("dataTransfer not available");}
             const draggedId = Number(event.dataTransfer.getData("text/plain"));
             const droppedId = getRowId(event.target);
-            this.reorderItems(draggedId, Number(droppedId));
+            this.reorderItems(draggedId, droppedId);
         });
 
         this.addEventListener("dragover", (event: DragEvent) => { event.preventDefault(); });

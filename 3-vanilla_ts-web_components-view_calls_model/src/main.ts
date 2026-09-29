@@ -19,7 +19,10 @@ reorderTodos.addObserver((_, dragged, dropped) => todoListElement.reorderTodoIte
 
 const button = document.getElementById("myButton");
 if (button === null) { throw new Error("no button") };
-button.addEventListener("click", () => addItem(todoTextInput.value));
+button.addEventListener("click", () => {
+    addItem(todoTextInput.value);
+    todoTextInput.value = "";
+});
 addItem.addObserver((item) => todoListElement.addTodoItem(item));
 
 window.addEventListener("DOMContentLoaded", (_event) => {
