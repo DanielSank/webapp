@@ -68,7 +68,6 @@ function _addItem(text: string): TodoItem {
 export const addItem = makeObservable(_addItem);
 
 function _deleteItem(id: number): void {
-    console.log(`deleting item ${id}`);
     const idx = todoList.findIndex(t => t.id === id);
     if (idx < 0) { throw new Error(`Cannot delete index ${idx}`); }
     ID_POOL.return(id);
@@ -77,7 +76,6 @@ function _deleteItem(id: number): void {
 export const deleteItem = makeObservable(_deleteItem);
 
 function _setChecked(id: number, checked: boolean): void {
-    console.log(`Setting checked ${id} to ${checked}`);
     const item = todoList.find(t => t.id === id);
     if (item === undefined) {throw new Error(`Could not find todo with index ${id}.`)}
     item.checked = checked;

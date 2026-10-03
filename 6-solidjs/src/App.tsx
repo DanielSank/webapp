@@ -1,4 +1,4 @@
-import { createSignal, For } from 'solid-js'
+import { createSignal, For, onCleanup } from 'solid-js'
 import { addItem, deleteItem, reorderTodos, setChecked, getTodoListReadonly } from  './todo.ts'
 import type {TodoItem } from './todo.ts'
 
@@ -6,10 +6,17 @@ function App() {
 
   const [getTodos, setTodos] = createSignal(getTodoListReadonly());
 
-  deleteItem.addObserver(() => { setTodos([...getTodoListReadonly()]) });
-  addItem.addObserver(() => { setTodos([...getTodoListReadonly()]) });
-  reorderTodos.addObserver(() => { setTodos([...getTodoListReadonly()]) });
-  setChecked.addObserver(() => { setTodos([...getTodoListReadonly()]) });
+  const deleteId = deleteItem.addObserver(() => { setTodos([...getTodoListReadonly()]) });
+  const addId = addItem.addObserver(() => { setTodos([...getTodoListReadonly()]) });
+  const reorderId = reorderTodos.addObserver(() => { setTodos([...getTodoListReadonly()]) });
+  const checkedId = setChecked.addObserver(() => { setTodos([...getTodoListReadonly()]) });
+
+  onCleanup( () => {
+    deleteItem.removeObserver(deleteId);
+    addItem.removeObserver(addId);
+    reorderTodos.removeObserver(reorderId);
+    setChecked.removeObserver(checkedId);
+  });
 
   return (
     <>
@@ -26,7 +33,7 @@ function AddButtonElement() {
     return (
         <>
             <button onClick={() => {addItem(text()); setText(""); }}>Add</button>
-            <input type="text" value={text()} onChange={(e) => setText(e.target.value)}></input>
+            <input type="text" value={text()} onInput={(e) => setText(e.target.value)}></input>
         </>
     );
 }
@@ -43,10 +50,16 @@ function TodoItemElement({ text, checked, id }: {text:string, checked: boolean, 
     return (
         <li
             draggable="true"
-            onDragStart={ (e) => { e.dataTransfer.setData("text/plain", String(id));} }
+            onDragStart={ (e) => {
+                const dataTransfer = e.dataTransfer;
+                if (dataTransfer === null) { throw new Error("No data transfer.");}
+                dataTransfer.setData("text/plain", String(id));
+            }}
             onDragOver={ (e) => {e.preventDefault();} }
             onDrop={ (e) => {
-                const draggedId = Number(e.dataTransfer.getData("text/plain"));
+                const dataTransfer = e.dataTransfer;
+                if (dataTransfer === null) { throw new Error("No data transfer.");}
+                const draggedId = Number(dataTransfer.getData("text/plain"));
                 reorderTodos(draggedId, id);
             }}
         >
